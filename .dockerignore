@@ -1,0 +1,27 @@
+# Version control
+.git
+.gitignore
+
+# Development tools
+.air.toml
+tmp/
+bin/
+
+# Environment files
+.env
+.env.*
+
+# CI/CD
+.github/
+
+# Documentation
+*.md
+LICENSE
+plans/
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Local config overrides
+docker-compose.override.yml

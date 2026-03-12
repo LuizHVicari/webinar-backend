@@ -1,0 +1,62 @@
+name: CI — Push
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  test:
+    name: Tests
+    uses: ./.github/workflows/run-tests.yml
+
+  lint:
+    name: Lint
+    uses: ./.github/workflows/run-lint.yml
+
+  publish-docker-dev:
+    name: Build & Publish Docker (dev)
+    if: github.ref == 'refs/heads/dev'
+    needs: [test, lint]
+    uses: ./.github/workflows/build-and-publish.yml
+    with:
+      environment: dev
+      tag_prefix: dev
+    permissions:
+      contents: read
+      packages: write
+
+  publish-docker-prod:
+    name: Build & Publish Docker (prod)
+    if: github.ref == 'refs/heads/main'
+    needs: [test, lint]
+    uses: ./.github/workflows/build-and-publish.yml
+    with:
+      environment: prod
+      tag_prefix: v
+    permissions:
+      contents: read
+      packages: write
+
+  publish-binary-dev:
+    name: Build & Publish Binary (dev)
+    if: github.ref == 'refs/heads/dev'
+    needs: [test, lint]
+    uses: ./.github/workflows/build-and-publish-binary.yml
+    with:
+      environment: dev
+      tag_prefix: dev
+    permissions:
+      contents: write
+
+  publish-binary-prod:
+    name: Build & Publish Binary (prod)
+    if: github.ref == 'refs/heads/main'
+    needs: [test, lint]
+    uses: ./.github/workflows/build-and-publish-binary.yml
+    with:
+      environment: prod
+      tag_prefix: v
+    permissions:
+      contents: write

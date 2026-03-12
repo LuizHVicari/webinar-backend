@@ -1,3 +1,5 @@
+set windows-shell := ["C:\\Program Files\\Git\\bin\\sh.exe", "-c"]
+
 # Run the API with hot reload (watches for file changes) [default]
 dev:
     go tool air
