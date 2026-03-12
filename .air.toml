@@ -1,0 +1,5 @@
+[build]
+cmd = "go build -o ./bin/api ./cmd/api"
+bin = "./bin/api"
+include_ext = ["go"]
+exclude_dir = ["bin", "sqlc/generated", "vendor"]
