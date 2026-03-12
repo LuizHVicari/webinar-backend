@@ -12,7 +12,7 @@ The backend is a Go REST API using Gin, backed by PostgreSQL, Redis, Ory Kratos 
 | [Docker](https://docs.docker.com/get-docker/) | Run infrastructure services | https://docs.docker.com/get-docker/ |
 | [Docker Compose v2](https://docs.docker.com/compose/install/) | Orchestrate services | bundled with Docker Desktop |
 | [just](https://github.com/casey/just#installation) | Task runner | https://github.com/casey/just#installation |
-| [golangci-lint](https://golangci-lint.run/usage/install/) | Linter | https://golangci-lint.run/usage/install/ |
+| [golangci-lint](https://golangci-lint.run/usage/install/) | Linter | https://golangci-lint.run/docs/welcome/install/ |
 
 ## Running
 
