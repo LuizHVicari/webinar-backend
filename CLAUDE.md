@@ -103,6 +103,8 @@ Every approved implementation plan must be saved at `plans/NNN-short-description
 
 After implementation, append a **Deviations** section to the plan file documenting every change that invalidates or modifies something explicitly stated in the plan. Each entry must include what changed and why. Format as a markdown table with columns `#`, `What changed`, `Why`.
 
+**At the start of every conversation**, list all filenames in `plans/` and read any plan that is related to what was requested. If you make a change that was covered by an existing plan, update that plan's Deviations section accordingly.
+
 ## Docker Compose Profiles
 
 Use profiles to start only what you need:
