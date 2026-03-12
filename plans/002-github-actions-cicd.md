@@ -92,3 +92,4 @@ The project had no CI/CD configuration. This plan establishes a reusable GitHub 
 | # | What changed | Why |
 |---|---|---|
 | 1 | `golangci/golangci-lint-action@v6` → `@v7` in `run-lint.yml` | `golangci-lint-action@v6` does not support golangci-lint v2.x; `@v7` is required for v2 |
+| 2 | Go version `1.25` → `1.24` in `run-lint.yml`, `run-tests.yml`, and `go.mod` | Go 1.25 does not exist; golangci-lint is built with Go 1.24 and fails when the targeted version is higher |
