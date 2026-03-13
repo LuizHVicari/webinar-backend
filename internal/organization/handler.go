@@ -1,6 +1,7 @@
 package organization
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -10,11 +11,16 @@ import (
 	"github.com/LuizHVicari/webinar-backend/pkg/middleware"
 )
 
-type Handler struct {
-	inviteSvc *InviteService
+type inviteService interface {
+	Create(ctx context.Context, callerID, orgID uuid.UUID, email string, role Role) (*Invite, error)
+	GetPendingByEmail(ctx context.Context, email string) ([]*Invite, error)
 }
 
-func NewHandler(inviteSvc *InviteService) *Handler {
+type Handler struct {
+	inviteSvc inviteService
+}
+
+func NewHandler(inviteSvc inviteService) *Handler {
 	return &Handler{inviteSvc: inviteSvc}
 }
 

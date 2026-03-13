@@ -6,11 +6,16 @@ import (
 	"github.com/google/uuid"
 )
 
-type OrganizationService struct {
-	repo *OrganizationRepository
+type organizationRepo interface {
+	Create(ctx context.Context, id uuid.UUID, name string) (*Organization, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*Organization, error)
 }
 
-func NewOrganizationService(repo *OrganizationRepository) *OrganizationService {
+type OrganizationService struct {
+	repo organizationRepo
+}
+
+func NewOrganizationService(repo organizationRepo) *OrganizationService {
 	return &OrganizationService{repo: repo}
 }
 

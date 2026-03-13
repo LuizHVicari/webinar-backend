@@ -11,12 +11,19 @@ type ketoChecker interface {
 	HasRelation(ctx context.Context, namespace, object, relation, subjectID string) (bool, error)
 }
 
+type inviteRepo interface {
+	Create(ctx context.Context, id, orgID, invitedBy uuid.UUID, email string, role Role, expiresAt time.Time) (*Invite, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*Invite, error)
+	GetPendingByEmail(ctx context.Context, email string) ([]*Invite, error)
+	Accept(ctx context.Context, id uuid.UUID) (*Invite, error)
+}
+
 type InviteService struct {
-	repo *InviteRepository
+	repo inviteRepo
 	keto ketoChecker
 }
 
-func NewInviteService(repo *InviteRepository, keto ketoChecker) *InviteService {
+func NewInviteService(repo inviteRepo, keto ketoChecker) *InviteService {
 	return &InviteService{repo: repo, keto: keto}
 }
 
@@ -70,7 +77,7 @@ func (s *InviteService) Accept(ctx context.Context, inviteID uuid.UUID, callerEm
 
 func (s *InviteService) resolveRole(ctx context.Context, orgID, userID uuid.UUID) (Role, error) {
 	for _, r := range Roles() {
-		ok, err := s.keto.HasRelation(ctx, "organizations", orgID.String(), string(r), userID.String())
+		ok, err := s.keto.HasRelation(ctx, "Organization", orgID.String(), string(r), userID.String())
 		if err != nil {
 			return "", err
 		}

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,11 +11,18 @@ import (
 	"github.com/LuizHVicari/webinar-backend/pkg/middleware"
 )
 
-type Handler struct {
-	svc *UserService
+type userService interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
+	JoinViaInvite(ctx context.Context, userID uuid.UUID, email string, inviteID uuid.UUID) (*User, error)
+	CreateWithOrg(ctx context.Context, userID uuid.UUID, orgName string) (*User, error)
+	ChangeRole(ctx context.Context, callerID, callerOrgID, targetID uuid.UUID, newRole organization.Role) error
 }
 
-func NewHandler(svc *UserService) *Handler {
+type Handler struct {
+	svc userService
+}
+
+func NewHandler(svc userService) *Handler {
 	return &Handler{svc: svc}
 }
 

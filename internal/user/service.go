@@ -9,6 +9,13 @@ import (
 	"github.com/LuizHVicari/webinar-backend/internal/organization"
 )
 
+type userRepo interface {
+	Create(ctx context.Context, id, identityID uuid.UUID) (*User, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
+	GetByIdentityID(ctx context.Context, identityID uuid.UUID) (*User, error)
+	UpdateOrganization(ctx context.Context, id, orgID uuid.UUID) (*User, error)
+}
+
 // orgCreator is satisfied by *organization.OrganizationService.
 type orgCreator interface {
 	Create(ctx context.Context, id uuid.UUID, name string) (*organization.Organization, error)
@@ -26,13 +33,13 @@ type ketoClient interface {
 }
 
 type UserService struct {
-	repo    *UserRepository
+	repo    userRepo
 	orgSvc  orgCreator
 	invites inviteAcceptor
 	keto    ketoClient
 }
 
-func NewUserService(repo *UserRepository, orgSvc orgCreator, invites inviteAcceptor, keto ketoClient) *UserService {
+func NewUserService(repo userRepo, orgSvc orgCreator, invites inviteAcceptor, keto ketoClient) *UserService {
 	return &UserService{repo: repo, orgSvc: orgSvc, invites: invites, keto: keto}
 }
 
@@ -80,7 +87,7 @@ func (s *UserService) JoinViaInvite(ctx context.Context, userID uuid.UUID, email
 		return nil, err
 	}
 
-	if err := s.keto.AddRelation(ctx, "organizations", orgID.String(), string(role), userID.String()); err != nil {
+	if err := s.keto.AddRelation(ctx, "Organization", orgID.String(), string(role), userID.String()); err != nil {
 		return nil, err
 	}
 	return updated, nil
@@ -108,7 +115,7 @@ func (s *UserService) CreateWithOrg(ctx context.Context, userID uuid.UUID, orgNa
 		return nil, err
 	}
 
-	if err := s.keto.AddRelation(ctx, "organizations", orgID.String(), string(organization.RoleAdmin), userID.String()); err != nil {
+	if err := s.keto.AddRelation(ctx, "Organization", orgID.String(), string(organization.RoleAdmin), userID.String()); err != nil {
 		return nil, err
 	}
 	return updated, nil
@@ -133,10 +140,10 @@ func (s *UserService) ChangeRole(ctx context.Context, callerID, callerOrgID, tar
 		return err
 	}
 
-	if err := s.keto.DeleteRelation(ctx, "organizations", callerOrgID.String(), string(targetRole), targetID.String()); err != nil {
+	if err := s.keto.DeleteRelation(ctx, "Organization", callerOrgID.String(), string(targetRole), targetID.String()); err != nil {
 		return err
 	}
-	return s.keto.AddRelation(ctx, "organizations", callerOrgID.String(), string(newRole), targetID.String())
+	return s.keto.AddRelation(ctx, "Organization", callerOrgID.String(), string(newRole), targetID.String())
 }
 
 func (s *UserService) checkChangeRolePermission(callerRole, targetRole, newRole organization.Role, callerID, targetID uuid.UUID) error {
@@ -160,7 +167,7 @@ func (s *UserService) checkChangeRolePermission(callerRole, targetRole, newRole 
 
 func (s *UserService) resolveRole(ctx context.Context, orgID, userID uuid.UUID) (organization.Role, error) {
 	for _, r := range organization.Roles() {
-		ok, err := s.keto.HasRelation(ctx, "organizations", orgID.String(), string(r), userID.String())
+		ok, err := s.keto.HasRelation(ctx, "Organization", orgID.String(), string(r), userID.String())
 		if err != nil {
 			return "", err
 		}
