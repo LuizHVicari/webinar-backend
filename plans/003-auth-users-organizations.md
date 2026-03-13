@@ -6,7 +6,8 @@ The project has infrastructure in place (Postgres, Kratos, Keto via Docker Compo
 - Authentication middleware using Ory Kratos session cookies
 - Ory Keto client for permission checks
 - `organization`, `role`, `user`, and `invite` domains with their full handler→service→repository stacks
-- Registration flow: user signs up in Kratos → authenticates → lists pending invites → accepts one (joins org) OR creates own org (becomes `admin`)
+- Registration flow: user signs up in Kratos → authenticates → lists pending invites (by email) → accepts one (joins org) OR creates own org (becomes `admin`)
+- A user may exist without belonging to any organization; org-scoped actions require membership
 
 ## Decisions
 
@@ -18,8 +19,9 @@ The project has infrastructure in place (Postgres, Kratos, Keto via Docker Compo
 - Keto relation tuples: `organizations:<org-id>#<role>@<user-id>`
 - HR cannot invite as admin, cannot set anyone as admin — only admins can assign admin role
 - HR restriction (can't change own role, can't change other HR/admin roles) → enforced in service layer
-- 1 user = exactly 1 org, always
-- Invite token: `crypto/rand` (32 bytes) encoded as base64url → raw returned in API response (email integration later), SHA-256 hash stored in DB — never store raw token in DB
+- 1 user = at most 1 org; joining or creating an org is required before accessing org-scoped resources
+- Invite lookup: by the user's email (from Kratos identity) — no token needed; invite is accepted by its UUID
+- No email sending; invites are surfaced via API for the UI to display to the authenticated user
 
 ## Domain Model
 
@@ -35,7 +37,7 @@ updated_at      timestamptz NOT NULL DEFAULT now()
 -- users
 id              uuid PRIMARY KEY DEFAULT gen_random_uuid()
 identity_id     uuid NOT NULL UNIQUE   -- Kratos identity ID
-organization_id uuid NOT NULL REFERENCES organizations(id)
+organization_id uuid REFERENCES organizations(id)  -- nullable: user may not yet belong to an org
 created_at      timestamptz NOT NULL DEFAULT now()
 updated_at      timestamptz NOT NULL DEFAULT now()
 
@@ -43,7 +45,6 @@ updated_at      timestamptz NOT NULL DEFAULT now()
 id              uuid PRIMARY KEY DEFAULT gen_random_uuid()
 organization_id uuid NOT NULL REFERENCES organizations(id)
 email           varchar(255) NOT NULL
-token_hash      bytea NOT NULL UNIQUE   -- SHA-256 of the raw token
 role            varchar(50) NOT NULL
 invited_by      uuid NOT NULL REFERENCES users(id)
 accepted        boolean NOT NULL DEFAULT false
@@ -52,14 +53,15 @@ created_at      timestamptz NOT NULL DEFAULT now()
 updated_at      timestamptz NOT NULL DEFAULT now()
 ```
 
-### Invite token lifecycle
+### Invite lifecycle
 
 ```
-1. Generate: raw = base64url(crypto/rand(32 bytes))
-2. Store:    token_hash = SHA-256(raw)  → written to DB
-3. Deliver:  raw → returned in API response (email integration later)
-4. Validate: receive raw from user → SHA-256(raw) → lookup by token_hash
+1. Admin/HR creates invite: POST /invites  → stored with target email + role
+2. Invitee logs in → GET /invites/pending  → lists their pending (non-accepted, non-expired) invites by email
+3. Invitee accepts:  POST /users/join  { invite_id }  → user.organization_id set, Keto tuple written
 ```
+
+No token generation or hashing involved — the invite UUID is the reference.
 
 ### Keto relation tuples
 
@@ -116,43 +118,39 @@ Update `config/keto/keto.yml`: set `namespaces.location` to `/etc/config/keto/na
 
 `sqlc/queries/organizations.sql`, `sqlc/queries/users.sql`, `sqlc/queries/invites.sql` — then `just generate`.
 
-### 4. Token helpers (`pkg/token/token.go`)
-
-`Generate() (raw string, hash []byte, err error)` and `Hash(raw string) []byte`.
-
-### 5. Keto client (`pkg/keto/keto.go`)
+### 4. Keto client (`pkg/keto/keto.go`)
 
 `HasRelation`, `AddRelation`, `DeleteRelation` — plain `net/http`, no SDK.
 
-### 6. Auth middleware (`pkg/middleware/auth.go`)
+### 5. Auth middleware (`pkg/middleware/auth.go`)
 
 Validates cookie via Kratos whoami. Sets `"user"` and `"identity_email"` in Gin context.
 
-### 7. `internal/organization`
+### 6. `internal/organization`
 
 `organization.go` (struct) + `role.go` (Role type, consts, IsValid, IsAdminOrHR) + repository + service. No handler.
 
-### 8. `internal/invite`
+### 7. `internal/invite`
 
-invite.go, repository, service (Create returns rawToken, GetPendingForEmail), handler (POST /invites, GET /invites/pending).
+`invite.go`, repository, service (`Create`, `GetPendingForEmail`), handler (`POST /invites`, `GET /invites/pending`).
 
-### 9. `internal/user`
+### 8. `internal/user`
 
-user.go, repository, service (JoinViaInvite, CreateWithOrg, GetByIdentityID, ChangeRole), handler (all auth required).
+`user.go`, repository, service (`JoinViaInvite`, `CreateWithOrg`, `GetByIdentityID`, `ChangeRole`), handler (all auth required).
 
 Routes:
 ```
-POST /users/join        → JoinViaInvite  (body: {token})
+POST /users/join        → JoinViaInvite  (body: {invite_id})
 POST /users/create-org  → CreateWithOrg  (body: {org_name})
 GET  /users/me          → Me
 PUT  /users/:id/role    → ChangeRole     (body: {role})
 ```
 
-### 10. Wire-up (`cmd/api/main.go`)
+### 9. Wire-up (`cmd/api/main.go`)
 
 DB connection + instantiate all repos, services, handlers + register routes.
 
-### 11. Tests
+### 10. Tests
 
 - Repository: testcontainers + real Postgres
 - Service: mock repo + mock Keto
@@ -169,7 +167,6 @@ DB connection + instantiate all repos, services, handlers + register routes.
 | `sqlc/queries/users.sql` | create |
 | `sqlc/queries/invites.sql` | create |
 | `sqlc/generated/` | regenerate |
-| `pkg/token/token.go` | create |
 | `pkg/keto/keto.go` | create |
 | `pkg/middleware/auth.go` | create |
 | `internal/organization/organization.go` | create |
@@ -188,4 +185,15 @@ DB connection + instantiate all repos, services, handlers + register routes.
 
 ## Deviations
 
-_None yet — to be filled during implementation._
+| # | What changed | Why |
+|---|---|---|
+| 1 | `pkg/token/token.go` not created | Invite token/hash removed from design — invites identified by UUID only |
+| 2 | `pkg/keto/keto.go` uses `github.com/ory/client-go` SDK instead of raw `net/http` | Ory provides an official Go SDK; safer and less boilerplate than hand-rolled HTTP |
+| 3 | `pkg/middleware/auth.go` accepts a `UserResolver` interface and sets `user_id` + `org_id` in Gin context in addition to `identity_id`/`identity_email` | Handlers must not call user service to resolve DB user on every request; middleware resolves once |
+| 4 | `internal/invite/` does not exist; all invite code lives in `internal/organization/` | Invite is a subdomain of Organization, not a separate bounded context |
+| 5 | Structs named `OrganizationRepository`, `OrganizationService`, `InviteRepository`, `InviteService` (instead of plain `Repository`/`Service`) | Explicit naming requested since they share a package |
+| 6 | `dtos.go` added to each domain package | Required for Swaggo compatibility — anonymous inline structs cannot be documented |
+| 7 | UUID v7 (`uuid.NewV7()`) generated in application layer; INSERT queries accept `id` as parameter | User requirement: time-ordered UUIDs generated in Go, not by the DB |
+| 8 | `sqlc/sqlc.yaml` updated with `sql_package: pgx/v5` and UUID type override | Required for pgx/v5 driver and `github.com/google/uuid` in generated code |
+| 9 | `pkg/common/errors.go` added; `internal/organization/errors.go` owns all org/invite errors and the `HTTPStatus(err) int` mapping | Error-to-HTTP mapping belongs in `errors.go`, not handlers |
+| 10 | No interfaces defined in provider packages (repositories/services expose concrete structs) | Go idiom: interfaces at the consumer side only |
