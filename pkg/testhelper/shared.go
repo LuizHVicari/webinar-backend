@@ -148,7 +148,7 @@ func StartKeto() (*KetoContainer, error) {
 
 	ketoConfigPath := filepath.Join(tmpDir, "keto.yml")
 	if err := os.WriteFile(ketoConfigPath, []byte(ketoConfig), 0o644); err != nil {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 		_ = pgCtr.Terminate(ctx)
 		_ = net.Remove(ctx)
 		return nil, fmt.Errorf("write keto config: %w", err)
@@ -175,7 +175,7 @@ func StartKeto() (*KetoContainer, error) {
 		Started: true,
 	})
 	if err != nil {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 		_ = pgCtr.Terminate(ctx)
 		_ = net.Remove(ctx)
 		return nil, fmt.Errorf("start keto container: %w", err)
@@ -196,7 +196,7 @@ func StartKeto() (*KetoContainer, error) {
 		return nil, fmt.Errorf("get keto write endpoint: %w", err)
 	}
 
-	os.RemoveAll(tmpDir)
+	_ = os.RemoveAll(tmpDir)
 
 	return &KetoContainer{
 		Client: keto.New(readURL, writeURL),
@@ -275,7 +275,7 @@ func StartKratos() (*KratosContainer, error) {
 
 	kratosConfigPath := filepath.Join(tmpDir, "kratos.yml")
 	if err := os.WriteFile(kratosConfigPath, []byte(kratosConfig), 0o644); err != nil {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 		_ = pgCtr.Terminate(ctx)
 		_ = net.Remove(ctx)
 		return nil, fmt.Errorf("write kratos config: %w", err)
@@ -301,7 +301,7 @@ func StartKratos() (*KratosContainer, error) {
 		Started: true,
 	})
 	if err != nil {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 		_ = pgCtr.Terminate(ctx)
 		_ = net.Remove(ctx)
 		return nil, fmt.Errorf("start kratos container: %w", err)
@@ -322,7 +322,7 @@ func StartKratos() (*KratosContainer, error) {
 		return nil, fmt.Errorf("get kratos admin endpoint: %w", err)
 	}
 
-	os.RemoveAll(tmpDir)
+	_ = os.RemoveAll(tmpDir)
 
 	return &KratosContainer{
 		URLs: KratosURLs{PublicURL: publicURL, AdminURL: adminURL},
@@ -349,7 +349,7 @@ func DeleteAllIdentities(t *testing.T, adminURL string) {
 		if err != nil {
 			t.Fatalf("delete kratos identity %s: %v", id, err)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -358,7 +358,7 @@ func listKratosIdentityIDs(adminURL string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var identities []struct {
 		ID string `json:"id"`

@@ -50,7 +50,7 @@ func createIdentity(t *testing.T, adminURL, email, password string) string {
 	})
 	resp, err := http.Post(adminURL+"/identities", "application/json", bytes.NewReader(body))
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -78,7 +78,7 @@ func loginAndGetSessionCookie(t *testing.T, publicURL, email, password string) s
 	// Step 1: initiate browser login flow. Kratos sets a CSRF cookie and redirects to the UI URL.
 	initResp, err := client.Get(publicURL + "/self-service/login/browser")
 	require.NoError(t, err)
-	initResp.Body.Close()
+	_ = initResp.Body.Close()
 
 	location := initResp.Header.Get("Location")
 	require.NotEmpty(t, location, "expected redirect from /self-service/login/browser")
@@ -91,7 +91,7 @@ func loginAndGetSessionCookie(t *testing.T, publicURL, email, password string) s
 	// Step 2: fetch the flow to get the CSRF token.
 	flowResp, err := client.Get(publicURL + "/self-service/login/flows?id=" + flowID)
 	require.NoError(t, err)
-	defer flowResp.Body.Close()
+	defer func() { _ = flowResp.Body.Close() }()
 
 	var flowData map[string]any
 	require.NoError(t, json.NewDecoder(flowResp.Body).Decode(&flowData))
@@ -107,7 +107,7 @@ func loginAndGetSessionCookie(t *testing.T, publicURL, email, password string) s
 	}
 	submitResp, err := client.PostForm(publicURL+"/self-service/login?flow="+flowID, formData)
 	require.NoError(t, err)
-	submitResp.Body.Close()
+	_ = submitResp.Body.Close()
 
 	// Step 4: retrieve the session cookie from the jar.
 	parsedURL, _ := url.Parse(publicURL)
