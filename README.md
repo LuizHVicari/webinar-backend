@@ -13,6 +13,7 @@ The backend is a Go REST API using Gin, backed by PostgreSQL, Redis, Ory Kratos 
 | [Docker Compose v2](https://docs.docker.com/compose/install/) | Orchestrate services | bundled with Docker Desktop |
 | [just](https://github.com/casey/just#installation) | Task runner | https://github.com/casey/just#installation |
 | [golangci-lint](https://golangci-lint.run/usage/install/) | Linter | https://golangci-lint.run/docs/welcome/install/ |
+| [swag](https://github.com/swaggo/swag#getting-started) | Swagger doc generator | `go install github.com/swaggo/swag/cmd/swag@latest` |
 
 ## Running
 
@@ -51,7 +52,22 @@ just test ./internal/user/...  # run tests for a specific package
 just lint           # run linter
 just migrate        # apply database migrations
 just generate       # run sqlc code generation
+just docs           # regenerate Swagger documentation
 just docker-up app  # run the API in Docker instead of locally
 just docker-up full # start everything (infra + app)
 just docker-down    # stop infra services
+```
+
+## API Documentation
+
+With the server running, the Swagger UI is available at:
+
+```
+http://localhost:8080/swagger/index.html
+```
+
+To regenerate the docs after changing handler annotations:
+
+```sh
+just docs
 ```

@@ -7,18 +7,27 @@ on:
       - main
 
 jobs:
-  test:
-    name: Tests
-    uses: ./.github/workflows/run-tests.yml
-
   lint:
     name: Lint
     uses: ./.github/workflows/run-lint.yml
 
+  vet:
+    name: Vet
+    uses: ./.github/workflows/run-vet.yml
+
+  build:
+    name: Build
+    uses: ./.github/workflows/run-build.yml
+
+  test:
+    name: Tests
+    needs: [lint, vet, build]
+    uses: ./.github/workflows/run-tests.yml
+
   publish-docker-dev:
     name: Build & Publish Docker (dev)
     if: github.ref == 'refs/heads/dev'
-    needs: [test, lint]
+    needs: [test]
     uses: ./.github/workflows/build-and-publish.yml
     with:
       environment: dev
@@ -30,7 +39,7 @@ jobs:
   publish-docker-prod:
     name: Build & Publish Docker (prod)
     if: github.ref == 'refs/heads/main'
-    needs: [test, lint]
+    needs: [test]
     uses: ./.github/workflows/build-and-publish.yml
     with:
       environment: prod
@@ -42,7 +51,7 @@ jobs:
   publish-binary-dev:
     name: Build & Publish Binary (dev)
     if: github.ref == 'refs/heads/dev'
-    needs: [test, lint]
+    needs: [test]
     uses: ./.github/workflows/build-and-publish-binary.yml
     with:
       environment: dev
@@ -53,10 +62,15 @@ jobs:
   publish-binary-prod:
     name: Build & Publish Binary (prod)
     if: github.ref == 'refs/heads/main'
-    needs: [test, lint]
+    needs: [test]
     uses: ./.github/workflows/build-and-publish-binary.yml
     with:
       environment: prod
       tag_prefix: v
     permissions:
       contents: write
+
+  publish-swagger:
+    name: Publish Swagger Docs
+    needs: [test]
+    uses: ./.github/workflows/publish-swagger.yml

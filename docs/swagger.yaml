@@ -1,0 +1,330 @@
+basePath: /
+definitions:
+  common.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  organization.CreateInviteRequest:
+    properties:
+      email:
+        type: string
+      role:
+        type: string
+    required:
+    - email
+    - role
+    type: object
+  organization.Invite:
+    properties:
+      accepted:
+        type: boolean
+      created_at:
+        type: string
+      email:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      invited_by:
+        type: string
+      organization_id:
+        type: string
+      role:
+        $ref: '#/definitions/organization.Role'
+      updated_at:
+        type: string
+    type: object
+  organization.Role:
+    enum:
+    - admin
+    - manager
+    - human-resource
+    - developer
+    type: string
+    x-enum-varnames:
+    - RoleAdmin
+    - RoleManager
+    - RoleHumanResource
+    - RoleDeveloper
+  user.ChangeRoleRequest:
+    properties:
+      role:
+        type: string
+    required:
+    - role
+    type: object
+  user.CreateOrgRequest:
+    properties:
+      org_name:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - org_name
+    type: object
+  user.JoinViaInviteRequest:
+    properties:
+      invite_id:
+        type: string
+    required:
+    - invite_id
+    type: object
+  user.User:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      organization_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: REST API for the Webinar platform.
+  title: Webinar Backend API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /invites:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Invite details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/organization.CreateInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/organization.Invite'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - KratosSession: []
+      summary: Create an invite
+      tags:
+      - invites
+  /invites/pending:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/organization.Invite'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - KratosSession: []
+      summary: List pending invites
+      tags:
+      - invites
+  /users/{id}/role:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Target user UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.ChangeRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - KratosSession: []
+      summary: Change a user's role
+      tags:
+      - users
+  /users/create-org:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Organization name
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.CreateOrgRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - KratosSession: []
+      summary: Create an organization
+      tags:
+      - users
+  /users/join:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Invite ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.JoinViaInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - KratosSession: []
+      summary: Join an organization via invite
+      tags:
+      - users
+  /users/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - KratosSession: []
+      summary: Get current user
+      tags:
+      - users
+securityDefinitions:
+  KratosSession:
+    description: Ory Kratos session cookie obtained via the self-service login flow.
+    in: cookie
+    name: ory_kratos_session
+    type: apiKey
+swagger: "2.0"

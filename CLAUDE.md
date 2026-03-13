@@ -68,12 +68,22 @@ config/
 
 **Repositories** only: data access. Return domain types, never raw DB rows.
 
+**Cross-domain imports:** a domain package may only import another domain package at the **service layer** — and only to declare a consumer-side interface or reference a shared type (e.g. `organization.Role`, errors). Handlers and repositories must never import types from another domain package.
+
 ## Code Style
 
 - No unnecessary comments. Only add comments to: explain *why* something is done (non-obvious reasoning), generate code (`//go:generate`), or document exported symbols used as a public API.
 - Never write comments that restate what the code does (e.g., `// checks if a equals b`).
 - Keep functions short and focused on a single responsibility.
 - Follow idiomatic Go conventions throughout.
+- **Never nest `if` statements.** Always use early returns to reduce indentation. Deeply nested logic must be extracted into separate functions.
+- **Never use `else`.** After an `if` block that returns/breaks/continues, write the remaining logic at the outer level. `else` is only acceptable when both branches are single expressions with no returns.
+- **Errors:** common sentinel errors live in `pkg/common/errors.go`; domain-specific errors live in `<domain>/errors.go`. Each `errors.go` also owns the `HTTPStatus(err error) int` function for that scope — handlers never map errors to HTTP status codes themselves.
+- **UUIDs:** always generate UUID v7 in the application layer using `uuid.NewV7()`. Never rely on `DEFAULT gen_random_uuid()` from the database for new records; INSERT queries must always receive the `id` as a parameter.
+- **DTOs:** all named request/response types for a domain live in a `dtos.go` file inside that domain package. Anonymous inline structs are not allowed in handlers (incompatible with Swaggo).
+- **Explicit struct naming:** when a package contains multiple repositories or services, prefix each with its entity name (e.g. `OrganizationRepository`, `InviteService`) instead of generic names like `Repository` or `Service`.
+- **When the user tells you to change a code style pattern** that is not yet in this file, update CLAUDE.md immediately before writing any code that uses the new pattern.
+- **Plan deviations must be recorded immediately.** Any change that contradicts or extends something stated in the active plan must be appended to that plan's Deviations table before the conversation ends.
 
 ## Testing
 
