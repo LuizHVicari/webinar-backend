@@ -7,10 +7,19 @@ on:
       - main
 
 jobs:
-  test:
-    name: Tests
-    uses: ./.github/workflows/run-tests.yml
-
   lint:
     name: Lint
     uses: ./.github/workflows/run-lint.yml
+
+  vet:
+    name: Vet
+    uses: ./.github/workflows/run-vet.yml
+
+  build:
+    name: Build
+    uses: ./.github/workflows/run-build.yml
+
+  test:
+    name: Tests
+    needs: [lint, vet, build]
+    uses: ./.github/workflows/run-tests.yml

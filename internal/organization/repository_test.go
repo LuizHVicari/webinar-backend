@@ -14,8 +14,8 @@ import (
 )
 
 func TestOrganizationRepository_Create(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	repo := organization.NewOrganizationRepository(db.New(pool))
+	testhelper.TruncateTables(t, sharedPool)
+	repo := organization.NewOrganizationRepository(db.New(sharedPool))
 	ctx := context.Background()
 
 	id, err := uuid.NewV7()
@@ -31,8 +31,8 @@ func TestOrganizationRepository_Create(t *testing.T) {
 }
 
 func TestOrganizationRepository_GetByID(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	repo := organization.NewOrganizationRepository(db.New(pool))
+	testhelper.TruncateTables(t, sharedPool)
+	repo := organization.NewOrganizationRepository(db.New(sharedPool))
 	ctx := context.Background()
 
 	id, err := uuid.NewV7()
@@ -48,8 +48,8 @@ func TestOrganizationRepository_GetByID(t *testing.T) {
 }
 
 func TestOrganizationRepository_GetByID_NotFound(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	repo := organization.NewOrganizationRepository(db.New(pool))
+	testhelper.TruncateTables(t, sharedPool)
+	repo := organization.NewOrganizationRepository(db.New(sharedPool))
 	ctx := context.Background()
 
 	id, err := uuid.NewV7()

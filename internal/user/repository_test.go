@@ -15,8 +15,8 @@ import (
 )
 
 func TestUserRepository_Create(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	repo := user.NewUserRepository(db.New(pool))
+	testhelper.TruncateTables(t, sharedPool)
+	repo := user.NewUserRepository(db.New(sharedPool))
 	ctx := context.Background()
 
 	id, err := uuid.NewV7()
@@ -34,8 +34,8 @@ func TestUserRepository_Create(t *testing.T) {
 }
 
 func TestUserRepository_GetByID(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	repo := user.NewUserRepository(db.New(pool))
+	testhelper.TruncateTables(t, sharedPool)
+	repo := user.NewUserRepository(db.New(sharedPool))
 	ctx := context.Background()
 
 	id, err := uuid.NewV7()
@@ -53,8 +53,8 @@ func TestUserRepository_GetByID(t *testing.T) {
 }
 
 func TestUserRepository_GetByID_NotFound(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	repo := user.NewUserRepository(db.New(pool))
+	testhelper.TruncateTables(t, sharedPool)
+	repo := user.NewUserRepository(db.New(sharedPool))
 	ctx := context.Background()
 
 	id, err := uuid.NewV7()
@@ -65,8 +65,8 @@ func TestUserRepository_GetByID_NotFound(t *testing.T) {
 }
 
 func TestUserRepository_GetByIdentityID(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	repo := user.NewUserRepository(db.New(pool))
+	testhelper.TruncateTables(t, sharedPool)
+	repo := user.NewUserRepository(db.New(sharedPool))
 	ctx := context.Background()
 
 	id, err := uuid.NewV7()
@@ -84,8 +84,8 @@ func TestUserRepository_GetByIdentityID(t *testing.T) {
 }
 
 func TestUserRepository_GetByIdentityID_NotFound(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	repo := user.NewUserRepository(db.New(pool))
+	testhelper.TruncateTables(t, sharedPool)
+	repo := user.NewUserRepository(db.New(sharedPool))
 	ctx := context.Background()
 
 	identityID, err := uuid.NewV7()
@@ -96,8 +96,8 @@ func TestUserRepository_GetByIdentityID_NotFound(t *testing.T) {
 }
 
 func TestUserRepository_UpdateOrganization(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
+	testhelper.TruncateTables(t, sharedPool)
+	queries := db.New(sharedPool)
 	repo := user.NewUserRepository(queries)
 	orgRepo := organization.NewOrganizationRepository(queries)
 	ctx := context.Background()

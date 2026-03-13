@@ -64,3 +64,28 @@ func (c *Client) DeleteRelation(ctx context.Context, namespace, object, relation
 		Execute()
 	return err
 }
+
+// DeleteAllRelations removes every relation tuple from Keto. Intended for test teardown only.
+func (c *Client) DeleteAllRelations(ctx context.Context) error {
+	for {
+		resp, _, err := c.read.RelationshipAPI.GetRelationships(ctx).PageSize(100).Execute()
+		if err != nil {
+			return err
+		}
+		if len(resp.RelationTuples) == 0 {
+			return nil
+		}
+		for _, rt := range resp.RelationTuples {
+			req := c.write.RelationshipAPI.DeleteRelationships(ctx).
+				Namespace(rt.Namespace).
+				Object(rt.Object).
+				Relation(rt.Relation)
+			if rt.SubjectId != nil {
+				req = req.SubjectId(*rt.SubjectId)
+			}
+			if _, err := req.Execute(); err != nil {
+				return err
+			}
+		}
+	}
+}

@@ -22,8 +22,8 @@ type inviteFixtures struct {
 
 func newInviteFixtures(t *testing.T) inviteFixtures {
 	t.Helper()
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
+	testhelper.TruncateTables(t, sharedPool)
+	queries := db.New(sharedPool)
 	ctx := context.Background()
 
 	orgID, err := uuid.NewV7()

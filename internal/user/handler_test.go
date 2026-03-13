@@ -15,7 +15,6 @@ import (
 
 	"github.com/LuizHVicari/webinar-backend/internal/organization"
 	"github.com/LuizHVicari/webinar-backend/internal/user"
-	"github.com/LuizHVicari/webinar-backend/pkg/keto"
 	"github.com/LuizHVicari/webinar-backend/pkg/middleware"
 	"github.com/LuizHVicari/webinar-backend/pkg/testhelper"
 	db "github.com/LuizHVicari/webinar-backend/sqlc/generated"
@@ -26,30 +25,29 @@ func init() {
 }
 
 type userHandlerStack struct {
-	router     *gin.Engine
-	svc        *user.UserService
-	invSvc     *organization.InviteService
-	userRepo   *user.UserRepository
-	ketoClient *keto.Client
-	queries    *db.Queries
-	callerID   uuid.UUID
-	orgID      uuid.UUID
+	router   *gin.Engine
+	svc      *user.UserService
+	invSvc   *organization.InviteService
+	userRepo *user.UserRepository
+	queries  *db.Queries
+	callerID uuid.UUID
+	orgID    uuid.UUID
 }
 
-// newUserHandlerStack wires up the full real stack (Postgres + Keto) with an admin caller already in an org.
+// newUserHandlerStack wires up the full real stack (shared Postgres + Keto) with an admin caller already in an org.
 func newUserHandlerStack(t *testing.T) userHandlerStack {
 	t.Helper()
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
-	ketoClient := testhelper.NewKeto(t)
+	testhelper.TruncateTables(t, sharedPool)
+	testhelper.DeleteAllRelations(t, sharedKeto)
+	queries := db.New(sharedPool)
 	ctx := context.Background()
 
 	orgRepo := organization.NewOrganizationRepository(queries)
 	orgSvc := organization.NewOrganizationService(orgRepo)
 	invRepo := organization.NewInviteRepository(queries)
-	invSvc := organization.NewInviteService(invRepo, ketoClient)
+	invSvc := organization.NewInviteService(invRepo, sharedKeto)
 	userRepo := user.NewUserRepository(queries)
-	userSvc := user.NewUserService(userRepo, orgSvc, invSvc, ketoClient)
+	userSvc := user.NewUserService(userRepo, orgSvc, invSvc, sharedKeto)
 	handler := user.NewHandler(userSvc)
 
 	orgID, err := uuid.NewV7()
@@ -66,7 +64,7 @@ func newUserHandlerStack(t *testing.T) userHandlerStack {
 	_, err = userRepo.UpdateOrganization(ctx, callerID, orgID)
 	require.NoError(t, err)
 
-	require.NoError(t, ketoClient.AddRelation(ctx, "Organization", orgID.String(), string(organization.RoleAdmin), callerID.String()))
+	require.NoError(t, sharedKeto.AddRelation(ctx, "Organization", orgID.String(), string(organization.RoleAdmin), callerID.String()))
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
@@ -78,14 +76,13 @@ func newUserHandlerStack(t *testing.T) userHandlerStack {
 	handler.RegisterRoutes(r.Group("/"))
 
 	return userHandlerStack{
-		router:     r,
-		svc:        userSvc,
-		invSvc:     invSvc,
-		userRepo:   userRepo,
-		ketoClient: ketoClient,
-		queries:    queries,
-		callerID:   callerID,
-		orgID:      orgID,
+		router:   r,
+		svc:      userSvc,
+		invSvc:   invSvc,
+		userRepo: userRepo,
+		queries:  queries,
+		callerID: callerID,
+		orgID:    orgID,
 	}
 }
 
@@ -104,13 +101,13 @@ func TestUserHandler_Me_Success(t *testing.T) {
 }
 
 func TestUserHandler_Me_Unauthorized(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
-	ketoClient := testhelper.NewKeto(t)
+	testhelper.TruncateTables(t, sharedPool)
+	testhelper.DeleteAllRelations(t, sharedKeto)
+	queries := db.New(sharedPool)
 
 	orgSvc := organization.NewOrganizationService(organization.NewOrganizationRepository(queries))
-	invSvc := organization.NewInviteService(organization.NewInviteRepository(queries), ketoClient)
-	userSvc := user.NewUserService(user.NewUserRepository(queries), orgSvc, invSvc, ketoClient)
+	invSvc := organization.NewInviteService(organization.NewInviteRepository(queries), sharedKeto)
+	userSvc := user.NewUserService(user.NewUserRepository(queries), orgSvc, invSvc, sharedKeto)
 	handler := user.NewHandler(userSvc)
 
 	r := gin.New()
@@ -125,15 +122,15 @@ func TestUserHandler_Me_Unauthorized(t *testing.T) {
 }
 
 func TestUserHandler_CreateOrg_Success(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
-	ketoClient := testhelper.NewKeto(t)
+	testhelper.TruncateTables(t, sharedPool)
+	testhelper.DeleteAllRelations(t, sharedKeto)
+	queries := db.New(sharedPool)
 	ctx := context.Background()
 
 	orgSvc := organization.NewOrganizationService(organization.NewOrganizationRepository(queries))
-	invSvc := organization.NewInviteService(organization.NewInviteRepository(queries), ketoClient)
+	invSvc := organization.NewInviteService(organization.NewInviteRepository(queries), sharedKeto)
 	userRepo := user.NewUserRepository(queries)
-	userSvc := user.NewUserService(userRepo, orgSvc, invSvc, ketoClient)
+	userSvc := user.NewUserService(userRepo, orgSvc, invSvc, sharedKeto)
 	handler := user.NewHandler(userSvc)
 
 	userID, err := uuid.NewV7()
@@ -164,13 +161,13 @@ func TestUserHandler_CreateOrg_Success(t *testing.T) {
 }
 
 func TestUserHandler_CreateOrg_Unauthorized(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
-	ketoClient := testhelper.NewKeto(t)
+	testhelper.TruncateTables(t, sharedPool)
+	testhelper.DeleteAllRelations(t, sharedKeto)
+	queries := db.New(sharedPool)
 
 	orgSvc := organization.NewOrganizationService(organization.NewOrganizationRepository(queries))
-	invSvc := organization.NewInviteService(organization.NewInviteRepository(queries), ketoClient)
-	userSvc := user.NewUserService(user.NewUserRepository(queries), orgSvc, invSvc, ketoClient)
+	invSvc := organization.NewInviteService(organization.NewInviteRepository(queries), sharedKeto)
+	userSvc := user.NewUserService(user.NewUserRepository(queries), orgSvc, invSvc, sharedKeto)
 	handler := user.NewHandler(userSvc)
 
 	r := gin.New()
@@ -236,7 +233,7 @@ func TestUserHandler_ChangeRole_Success(t *testing.T) {
 	require.NoError(t, err)
 	_, err = s.userRepo.UpdateOrganization(ctx, targetID, s.orgID)
 	require.NoError(t, err)
-	require.NoError(t, s.ketoClient.AddRelation(ctx, "Organization", s.orgID.String(), string(organization.RoleDeveloper), targetID.String()))
+	require.NoError(t, sharedKeto.AddRelation(ctx, "Organization", s.orgID.String(), string(organization.RoleDeveloper), targetID.String()))
 
 	body, _ := json.Marshal(map[string]string{"role": "manager"})
 	req := httptest.NewRequest(http.MethodPut, "/users/"+targetID.String()+"/role", bytes.NewReader(body))

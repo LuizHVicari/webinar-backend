@@ -135,7 +135,7 @@ func extractCSRFToken(flowData map[string]any) string {
 }
 
 func TestAuth_ValidSession_PopulatesContext(t *testing.T) {
-	kratos := testhelper.NewKratos(t)
+	testhelper.DeleteAllIdentities(t, sharedKratos.AdminURL)
 
 	const (
 		email    = "test@example.com"
@@ -146,11 +146,11 @@ func TestAuth_ValidSession_PopulatesContext(t *testing.T) {
 	require.NoError(t, err)
 	resolver := &fakeUserResolver{userID: userID}
 
-	identityID := createIdentity(t, kratos.AdminURL, email, password)
-	sessionCookie := loginAndGetSessionCookie(t, kratos.PublicURL, email, password)
+	identityID := createIdentity(t, sharedKratos.AdminURL, email, password)
+	sessionCookie := loginAndGetSessionCookie(t, sharedKratos.PublicURL, email, password)
 
 	r := gin.New()
-	r.Use(middleware.Auth(kratos.PublicURL, resolver))
+	r.Use(middleware.Auth(sharedKratos.PublicURL, resolver))
 	r.GET("/me", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"user_id":        c.GetString(middleware.ContextKeyUserID),
@@ -174,12 +174,10 @@ func TestAuth_ValidSession_PopulatesContext(t *testing.T) {
 }
 
 func TestAuth_MissingCookie_Returns401(t *testing.T) {
-	kratos := testhelper.NewKratos(t)
-
 	resolver := &fakeUserResolver{}
 
 	r := gin.New()
-	r.Use(middleware.Auth(kratos.PublicURL, resolver))
+	r.Use(middleware.Auth(sharedKratos.PublicURL, resolver))
 	r.GET("/me", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/me", nil)
@@ -190,12 +188,10 @@ func TestAuth_MissingCookie_Returns401(t *testing.T) {
 }
 
 func TestAuth_InvalidSessionToken_Returns401(t *testing.T) {
-	kratos := testhelper.NewKratos(t)
-
 	resolver := &fakeUserResolver{}
 
 	r := gin.New()
-	r.Use(middleware.Auth(kratos.PublicURL, resolver))
+	r.Use(middleware.Auth(sharedKratos.PublicURL, resolver))
 	r.GET("/me", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/me", nil)

@@ -31,16 +31,16 @@ type handlerStack struct {
 	orgID    uuid.UUID
 }
 
-// newHandlerStack wires up the full real stack (Postgres + Keto) and seeds an admin caller.
+// newHandlerStack wires up the full real stack (shared Postgres + Keto) and seeds an admin caller.
 func newHandlerStack(t *testing.T) handlerStack {
 	t.Helper()
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
-	ketoClient := testhelper.NewKeto(t)
+	testhelper.TruncateTables(t, sharedPool)
+	testhelper.DeleteAllRelations(t, sharedKeto)
+	queries := db.New(sharedPool)
 	ctx := context.Background()
 
 	invRepo := organization.NewInviteRepository(queries)
-	invSvc := organization.NewInviteService(invRepo, ketoClient)
+	invSvc := organization.NewInviteService(invRepo, sharedKeto)
 	handler := organization.NewHandler(invSvc)
 
 	orgID, err := uuid.NewV7()
@@ -55,7 +55,7 @@ func newHandlerStack(t *testing.T) handlerStack {
 	_, err = queries.CreateUser(ctx, db.CreateUserParams{ID: callerID, IdentityID: identityID})
 	require.NoError(t, err)
 
-	require.NoError(t, ketoClient.AddRelation(ctx, "Organization", orgID.String(), string(organization.RoleAdmin), callerID.String()))
+	require.NoError(t, sharedKeto.AddRelation(ctx, "Organization", orgID.String(), string(organization.RoleAdmin), callerID.String()))
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
@@ -99,8 +99,8 @@ func TestOrgHandler_CreateInvite_InvalidRole(t *testing.T) {
 }
 
 func TestOrgHandler_CreateInvite_Forbidden_NoOrgID(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
+	testhelper.TruncateTables(t, sharedPool)
+	queries := db.New(sharedPool)
 
 	invSvc := organization.NewInviteService(organization.NewInviteRepository(queries), newFakeKetoChecker())
 	handler := organization.NewHandler(invSvc)
@@ -154,8 +154,8 @@ func TestOrgHandler_ListPendingInvites_Success(t *testing.T) {
 }
 
 func TestOrgHandler_ListPendingInvites_Unauthorized(t *testing.T) {
-	pool := testhelper.NewPostgres(t)
-	queries := db.New(pool)
+	testhelper.TruncateTables(t, sharedPool)
+	queries := db.New(sharedPool)
 
 	invSvc := organization.NewInviteService(organization.NewInviteRepository(queries), newFakeKetoChecker())
 	handler := organization.NewHandler(invSvc)
