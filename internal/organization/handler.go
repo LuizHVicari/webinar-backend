@@ -29,6 +29,18 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/invites/pending", h.listPendingInvites)
 }
 
+// @Summary      Create an invite
+// @Tags         invites
+// @Accept       json
+// @Produce      json
+// @Param        body  body      CreateInviteRequest  true  "Invite details"
+// @Success      201   {object}  Invite
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      403   {object}  common.ErrorResponse
+// @Failure      500   {object}  common.ErrorResponse
+// @Security     KratosSession
+// @Router       /invites [post]
 func (h *Handler) createInvite(c *gin.Context) {
 	callerID, err := uuid.Parse(c.GetString(middleware.ContextKeyUserID))
 	if err != nil {
@@ -60,6 +72,14 @@ func (h *Handler) createInvite(c *gin.Context) {
 	c.JSON(http.StatusCreated, invite)
 }
 
+// @Summary      List pending invites
+// @Tags         invites
+// @Produce      json
+// @Success      200  {array}   Invite
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      500  {object}  common.ErrorResponse
+// @Security     KratosSession
+// @Router       /invites/pending [get]
 func (h *Handler) listPendingInvites(c *gin.Context) {
 	email := c.GetString(middleware.ContextKeyIdentityEmail)
 	if email == "" {

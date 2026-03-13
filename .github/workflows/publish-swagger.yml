@@ -1,0 +1,29 @@
+name: Publish Swagger Docs
+
+on:
+  workflow_call:
+
+jobs:
+  publish-swagger:
+    name: Generate & Upload Swagger Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install swag
+        run: go install github.com/swaggo/swag/cmd/swag@v1.16.4
+
+      - name: Generate swagger docs
+        run: swag init -g cmd/api/main.go -o docs
+
+      - name: Upload swagger artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: swagger-docs
+          path: |
+            docs/swagger.json
+            docs/swagger.yaml

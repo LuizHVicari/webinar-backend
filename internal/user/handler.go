@@ -33,6 +33,15 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.PUT("/users/:id/role", h.changeRole)
 }
 
+// @Summary      Get current user
+// @Tags         users
+// @Produce      json
+// @Success      200  {object}  User
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Failure      500  {object}  common.ErrorResponse
+// @Security     KratosSession
+// @Router       /users/me [get]
 func (h *Handler) me(c *gin.Context) {
 	userID, err := uuid.Parse(c.GetString(middleware.ContextKeyUserID))
 	if err != nil {
@@ -48,6 +57,19 @@ func (h *Handler) me(c *gin.Context) {
 	c.JSON(http.StatusOK, u)
 }
 
+// @Summary      Join an organization via invite
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        body  body      JoinViaInviteRequest  true  "Invite ID"
+// @Success      200   {object}  User
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      409   {object}  common.ErrorResponse
+// @Failure      422   {object}  common.ErrorResponse
+// @Failure      500   {object}  common.ErrorResponse
+// @Security     KratosSession
+// @Router       /users/join [post]
 func (h *Handler) joinViaInvite(c *gin.Context) {
 	userID, err := uuid.Parse(c.GetString(middleware.ContextKeyUserID))
 	if err != nil {
@@ -71,6 +93,18 @@ func (h *Handler) joinViaInvite(c *gin.Context) {
 	c.JSON(http.StatusOK, u)
 }
 
+// @Summary      Create an organization
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        body  body      CreateOrgRequest  true  "Organization name"
+// @Success      201   {object}  User
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      409   {object}  common.ErrorResponse
+// @Failure      500   {object}  common.ErrorResponse
+// @Security     KratosSession
+// @Router       /users/create-org [post]
 func (h *Handler) createOrg(c *gin.Context) {
 	userID, err := uuid.Parse(c.GetString(middleware.ContextKeyUserID))
 	if err != nil {
@@ -92,6 +126,20 @@ func (h *Handler) createOrg(c *gin.Context) {
 	c.JSON(http.StatusCreated, u)
 }
 
+// @Summary      Change a user's role
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string             true  "Target user UUID"
+// @Param        body  body      ChangeRoleRequest  true  "New role"
+// @Success      204
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      403   {object}  common.ErrorResponse
+// @Failure      422   {object}  common.ErrorResponse
+// @Failure      500   {object}  common.ErrorResponse
+// @Security     KratosSession
+// @Router       /users/{id}/role [put]
 func (h *Handler) changeRole(c *gin.Context) {
 	callerID, err := uuid.Parse(c.GetString(middleware.ContextKeyUserID))
 	if err != nil {

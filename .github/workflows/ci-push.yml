@@ -69,3 +69,8 @@ jobs:
       tag_prefix: v
     permissions:
       contents: write
+
+  publish-swagger:
+    name: Publish Swagger Docs
+    needs: [test]
+    uses: ./.github/workflows/publish-swagger.yml

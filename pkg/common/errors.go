@@ -13,6 +13,11 @@ var (
 	ErrBadRequest   = errors.New("bad request")
 )
 
+// ErrorResponse is the standard error body returned on all failed requests.
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
 func HTTPStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrNotFound):

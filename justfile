@@ -28,6 +28,10 @@ migrate:
 generate:
     go generate ./...
 
+# Generate Swagger documentation (requires: go install github.com/swaggo/swag/cmd/swag@latest)
+docs:
+    swag init -g cmd/api/main.go -o docs
+
 # Start Docker Compose services for the given profile (default: infra)
 # Profiles: infra (postgres, redis, kratos, keto), app (api), full (everything)
 docker-up profile="infra":
