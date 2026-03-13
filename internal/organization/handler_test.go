@@ -82,8 +82,8 @@ func TestOrgHandler_CreateInvite_Success(t *testing.T) {
 
 	var result map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
-	assert.Equal(t, "invitee@example.com", result["Email"])
-	assert.Equal(t, "developer", result["Role"])
+	assert.Equal(t, "invitee@example.com", result["email"])
+	assert.Equal(t, "developer", result["role"])
 }
 
 func TestOrgHandler_CreateInvite_InvalidRole(t *testing.T) {
@@ -150,7 +150,7 @@ func TestOrgHandler_ListPendingInvites_Success(t *testing.T) {
 	var result []map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
 	assert.Len(t, result, 1)
-	assert.Equal(t, "invitee@example.com", result[0]["Email"])
+	assert.Equal(t, "invitee@example.com", result[0]["email"])
 }
 
 func TestOrgHandler_ListPendingInvites_Unauthorized(t *testing.T) {

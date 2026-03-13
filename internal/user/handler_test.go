@@ -97,7 +97,7 @@ func TestUserHandler_Me_Success(t *testing.T) {
 
 	var result map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
-	assert.Equal(t, s.callerID.String(), result["ID"])
+	assert.Equal(t, s.callerID.String(), result["id"])
 }
 
 func TestUserHandler_Me_Unauthorized(t *testing.T) {
@@ -157,7 +157,7 @@ func TestUserHandler_CreateOrg_Success(t *testing.T) {
 
 	var result map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
-	assert.NotNil(t, result["OrganizationID"])
+	assert.NotNil(t, result["organization_id"])
 }
 
 func TestUserHandler_CreateOrg_Unauthorized(t *testing.T) {
@@ -217,7 +217,7 @@ func TestUserHandler_JoinViaInvite_Success(t *testing.T) {
 
 	var result map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
-	assert.Equal(t, s.orgID.String(), result["OrganizationID"])
+	assert.Equal(t, s.orgID.String(), result["organization_id"])
 }
 
 func TestUserHandler_ChangeRole_Success(t *testing.T) {
